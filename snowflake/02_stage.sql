@@ -1,0 +1,16 @@
+-- Format CSV et stage externe sur le conteneur landing.
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE FILE FORMAT RETAIL.LANDING.CSV_HEADER
+  TYPE = CSV
+  PARSE_HEADER = TRUE                -- lit l'en-tête : gère la colonne channel ajoutée le 15/10
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+  EMPTY_FIELD_AS_NULL = TRUE
+  ERROR_ON_COLUMN_COUNT_MISMATCH = FALSE;
+
+CREATE OR REPLACE STAGE RETAIL.LANDING.AZURE_LANDING
+  URL = 'azure://stadfastroomar.blob.core.windows.net/landing/'
+  STORAGE_INTEGRATION = AZURE_LANDING_INT
+  FILE_FORMAT = RETAIL.LANDING.CSV_HEADER;
+
+LIST @RETAIL.LANDING.AZURE_LANDING;   -- attendu : 90 fichiers
