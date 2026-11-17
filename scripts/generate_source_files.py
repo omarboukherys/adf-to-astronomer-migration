@@ -15,6 +15,11 @@ The data is fully synthetic (no real person, no real company). The generator
 only uses the Python standard library, so it runs anywhere, including inside
 the Astro container with `astro dev pytest`.
 
+Files follow RFC 4180: comma separated, header row, CRLF line endings.
+CRLF is also what Azure Data Factory requires to copy a CSV with a header row
+directly into Snowflake (with LF it rejects the header option, and it silently
+drops a SKIP_HEADER passed as an additional format option).
+
 Edge cases injected on purpose (all counted in manifest.json):
     - exact duplicate rows (a file re-sent twice)
     - order status updates arriving in later files (keep the latest version)
@@ -88,7 +93,7 @@ def ts(day: date, rng: random.Random) -> str:
 def write_csv(path: Path, columns: list[str], rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=columns, lineterminator="\n")
+        writer = csv.DictWriter(f, fieldnames=columns, lineterminator="\r\n")  # RFC 4180
         writer.writeheader()
         for row in rows:
             writer.writerow({c: row.get(c, "") for c in columns})

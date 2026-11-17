@@ -97,6 +97,15 @@ def test_expected_results_match_files(output):
     assert round(revenue, 2) == expected["delivered_revenue"]
 
 
+def test_files_use_crlf_line_endings(output):
+    """RFC 4180 line endings: required by ADF direct copy with a header row."""
+    landing, _ = output
+    for f in landing.glob("*/*.csv"):
+        content = f.read_bytes()
+        assert content.endswith(b"\r\n")
+        assert content.count(b"\n") == content.count(b"\r\n")
+
+
 def test_manifest_written(output):
     landing, manifest = output
     assert json.loads((landing / "manifest.json").read_text(encoding="utf-8")) == manifest
