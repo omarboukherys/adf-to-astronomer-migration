@@ -1,0 +1,302 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Nom de fabrique de données",
+            "defaultValue": "adf-astronomer-omar"
+        },
+        "ls_snowflake_privateKey": {
+            "type": "secureString",
+            "metadata": "Chaîne sécurisée pour « privateKey » de « ls_snowflake »"
+        },
+        "ls_snowflake_privateKeyPassphrase": {
+            "type": "secureString",
+            "metadata": "Chaîne sécurisée pour « privateKeyPassphrase » de « ls_snowflake »"
+        },
+        "tr_daily_tumbling_properties_pipeline_parameters_load_date": {
+            "type": "string",
+            "defaultValue": "@formatDateTime(trigger().outputs.windowStartTime, 'yyyy-MM-dd')"
+        },
+        "ls_snowflake_properties_typeProperties_database": {
+            "type": "string",
+            "defaultValue": "RETAIL"
+        },
+        "ls_snowflake_properties_typeProperties_role": {
+            "type": "string",
+            "defaultValue": "ADF_LOADER"
+        },
+        "ls_blob_landing_properties_typeProperties_serviceEndpoint": {
+            "type": "string",
+            "defaultValue": "https://stadfastroomar.blob.core.windows.net/"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/pl_load_daily_landing')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "description": "Legacy : charge les fichiers du jour (customers, products, orders) d'Azure Blob vers Snowflake RAW_ADF.",
+                "activities": [
+                    {
+                        "name": "ForEach_entity",
+                        "type": "ForEach",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@pipeline().parameters.entities",
+                                "type": "Expression"
+                            },
+                            "isSequential": false,
+                            "activities": [
+                                {
+                                    "name": "Copy_blob_to_snowflake",
+                                    "type": "Copy",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.01:00:00",
+                                        "retry": 2,
+                                        "retryIntervalInSeconds": 60,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "DelimitedTextSource",
+                                            "storeSettings": {
+                                                "type": "AzureBlobStorageReadSettings",
+                                                "recursive": true,
+                                                "enablePartitionDiscovery": false
+                                            },
+                                            "formatSettings": {
+                                                "type": "DelimitedTextReadSettings"
+                                            }
+                                        },
+                                        "sink": {
+                                            "type": "SnowflakeV2Sink",
+                                            "importSettings": {
+                                                "type": "SnowflakeImportCopyCommand",
+                                                "additionalFormatOptions": {
+                                                    "ERROR_ON_COLUMN_COUNT_MISMATCH": "FALSE"
+                                                },
+                                                "storageIntegration": "AZURE_LANDING_INT"
+                                            }
+                                        },
+                                        "enableStaging": false
+                                    },
+                                    "inputs": [
+                                        {
+                                            "referenceName": "ds_landing_csv",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "entity": {
+                                                    "value": "@item()",
+                                                    "type": "Expression"
+                                                },
+                                                "load_date": {
+                                                    "value": "@pipeline().parameters.load_date",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    "outputs": [
+                                        {
+                                            "referenceName": "ds_snowflake_raw",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "table_name": {
+                                                    "value": "@toUpper(item())",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "load_date": {
+                        "type": "string",
+                        "defaultValue": "2026-10-01"
+                    },
+                    "entities": {
+                        "type": "array",
+                        "defaultValue": [
+                            "customers",
+                            "products",
+                            "orders"
+                        ]
+                    }
+                },
+                "annotations": [],
+                "lastPublishTime": "2026-11-17T11:31:26Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ds_landing_csv')]",
+                "[concat(variables('factoryId'), '/datasets/ds_snowflake_raw')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/tr_daily_tumbling')]",
+            "type": "Microsoft.DataFactory/factories/triggers",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "runtimeState": "Started",
+                "pipeline": {
+                    "pipelineReference": {
+                        "referenceName": "pl_load_daily_landing",
+                        "type": "PipelineReference"
+                    },
+                    "parameters": {
+                        "load_date": "[parameters('tr_daily_tumbling_properties_pipeline_parameters_load_date')]"
+                    }
+                },
+                "type": "TumblingWindowTrigger",
+                "typeProperties": {
+                    "frequency": "Hour",
+                    "interval": 24,
+                    "startTime": "2026-10-01T00:00:00Z",
+                    "endTime": "2026-10-31T00:00:00Z",
+                    "delay": "00:00:00",
+                    "maxConcurrency": 5,
+                    "retryPolicy": {
+                        "intervalInSeconds": 30
+                    },
+                    "dependsOn": []
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/pipelines/pl_load_daily_landing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_snowflake')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "SnowflakeV2",
+                "typeProperties": {
+                    "authenticationType": "KeyPair",
+                    "accountIdentifier": "GXIOLMG-FX39783",
+                    "user": "SVC_ADF",
+                    "database": "[parameters('ls_snowflake_properties_typeProperties_database')]",
+                    "warehouse": "ETL_WH",
+                    "role": "[parameters('ls_snowflake_properties_typeProperties_role')]",
+                    "privateKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('ls_snowflake_privateKey')]"
+                    },
+                    "privateKeyPassphrase": {
+                        "type": "SecureString",
+                        "value": "[parameters('ls_snowflake_privateKeyPassphrase')]"
+                    },
+                    "useUtcTimestamps": false
+                },
+                "version": "1.1"
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_blob_landing')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobStorage",
+                "typeProperties": {
+                    "serviceEndpoint": "[parameters('ls_blob_landing_properties_typeProperties_serviceEndpoint')]",
+                    "accountKind": "StorageV2"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_snowflake_raw')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_snowflake",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "table_name": {
+                        "type": "string"
+                    }
+                },
+                "annotations": [],
+                "type": "SnowflakeV2Table",
+                "schema": [],
+                "typeProperties": {
+                    "schema": "RAW_ADF",
+                    "table": {
+                        "value": "@dataset().table_name",
+                        "type": "Expression"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_snowflake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_landing_csv')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_blob_landing",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "entity": {
+                        "type": "string"
+                    },
+                    "load_date": {
+                        "type": "string"
+                    }
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": {
+                            "value": "@concat(dataset().entity, '_', dataset().load_date, '.csv')",
+                            "type": "Expression"
+                        },
+                        "folderPath": {
+                            "value": "@dataset().entity",
+                            "type": "Expression"
+                        },
+                        "container": "landing"
+                    },
+                    "columnDelimiter": ",",
+                    "rowDelimiter": "\r\n",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_blob_landing')]"
+            ]
+        }
+    ]
+}

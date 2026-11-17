@@ -1,0 +1,84 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Nom de fabrique de données",
+            "defaultValue": "adf-astronomer-omar"
+        },
+        "ls_snowflake_privateKey": {
+            "type": "secureString",
+            "metadata": "Chaîne sécurisée pour « privateKey » de « ls_snowflake »"
+        },
+        "ls_snowflake_privateKeyPassphrase": {
+            "type": "secureString",
+            "metadata": "Chaîne sécurisée pour « privateKeyPassphrase » de « ls_snowflake »"
+        },
+        "tr_daily_tumbling_properties_pipeline_parameters_load_date": {
+            "type": "string",
+            "defaultValue": "@formatDateTime(trigger().outputs.windowStartTime, 'yyyy-MM-dd')"
+        },
+        "ls_snowflake_properties_typeProperties_database": {
+            "type": "string",
+            "defaultValue": "RETAIL"
+        },
+        "ls_snowflake_properties_typeProperties_role": {
+            "type": "string",
+            "defaultValue": "ADF_LOADER"
+        },
+        "ls_blob_landing_properties_typeProperties_serviceEndpoint": {
+            "type": "string",
+            "defaultValue": "https://stadfastroomar.blob.core.windows.net/"
+        },
+        "containerUri": {
+            "type": "string",
+            "metadata": "URI pour le compte de stockage contenant des modèles ARM liés"
+        },
+        "containerSasToken": {
+            "type": "string",
+            "metadata": "Jeton SAS pour le compte de stockage contenant des modèles ARM liés"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "adf-astronomer-omar_ArmTemplate_0",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2024-03-01",
+            "properties": {
+                "mode": "incremental",
+                "templateLink": {
+                    "uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "factoryName": {
+                        "value": "[parameters('factoryName')]"
+                    },
+                    "ls_snowflake_privateKey": {
+                        "value": "[parameters('ls_snowflake_privateKey')]"
+                    },
+                    "ls_snowflake_privateKeyPassphrase": {
+                        "value": "[parameters('ls_snowflake_privateKeyPassphrase')]"
+                    },
+                    "ls_snowflake_properties_typeProperties_database": {
+                        "value": "[parameters('ls_snowflake_properties_typeProperties_database')]"
+                    },
+                    "ls_snowflake_properties_typeProperties_role": {
+                        "value": "[parameters('ls_snowflake_properties_typeProperties_role')]"
+                    },
+                    "ls_blob_landing_properties_typeProperties_serviceEndpoint": {
+                        "value": "[parameters('ls_blob_landing_properties_typeProperties_serviceEndpoint')]"
+                    },
+                    "tr_daily_tumbling_properties_pipeline_parameters_load_date": {
+                        "value": "[parameters('tr_daily_tumbling_properties_pipeline_parameters_load_date')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        }
+    ]
+}

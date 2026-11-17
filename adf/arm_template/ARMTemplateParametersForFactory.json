@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "value": "adf-astronomer-omar"
+        },
+        "ls_snowflake_privateKey": {
+            "value": ""
+        },
+        "ls_snowflake_privateKeyPassphrase": {
+            "value": ""
+        },
+        "tr_daily_tumbling_properties_pipeline_parameters_load_date": {
+            "value": "@formatDateTime(trigger().outputs.windowStartTime, 'yyyy-MM-dd')"
+        },
+        "ls_snowflake_properties_typeProperties_database": {
+            "value": "RETAIL"
+        },
+        "ls_snowflake_properties_typeProperties_role": {
+            "value": "ADF_LOADER"
+        },
+        "ls_blob_landing_properties_typeProperties_serviceEndpoint": {
+            "value": "https://stadfastroomar.blob.core.windows.net/"
+        }
+    }
+}
