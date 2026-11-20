@@ -1,1 +1,3 @@
-# Astro Runtime includes the following pre-installed providers packages: https://www.astronomer.io/docs/astro/runtime-image-architecture#provider-packages
+# Python packages installed in the Astro Runtime image (astro dev start / deploy).
+# Versions aligned with the Apache Airflow 3.3.2 constraints file.
+apache-airflow-providers-snowflake==6.17.0

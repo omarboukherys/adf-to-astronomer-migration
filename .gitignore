@@ -19,3 +19,4 @@ airflow.db
 
 .astro/*.lock
 data/
+include/keys/
