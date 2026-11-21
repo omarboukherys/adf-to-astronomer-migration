@@ -1,0 +1,28 @@
+# Intégration continue : à chaque push et pull request, les tests tournent dans la même
+# image Astro Runtime que les DAGs (Airflow 3 + Cosmos + dbt dans son venv).
+# Aucun secret nécessaire : les tests analysent les DAGs et le projet dbt sans appeler Snowflake.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Tests (astro dev pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v5
+
+      - name: Installer l'Astro CLI (même version qu'en local)
+        run: curl -sSL install.astronomer.io | sudo bash -s -- v1.47.0
+
+      - name: Créer un .env vide (le vrai, avec la connexion Snowflake, n'est pas versionné)
+        run: touch .env
+
+      - name: Lancer les tests (DAGs, rendu Cosmos du projet dbt, générateur)
+        run: astro dev pytest tests

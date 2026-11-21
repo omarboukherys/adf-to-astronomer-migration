@@ -22,7 +22,5 @@ data/
 include/keys/
 include/dbt/retail/target/
 include/dbt/retail/logs/
-include/dbt/retail/target/
-include/dbt/retail/logs/
 
 include/dbt/retail/.user.yml
