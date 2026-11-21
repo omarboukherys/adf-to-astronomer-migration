@@ -1,6 +1,6 @@
 # Intégration continue : à chaque push et pull request, les tests tournent dans la même
 # image Astro Runtime que les DAGs (Airflow 3 + Cosmos + dbt dans son venv).
-# Aucun secret nécessaire : les tests analysent les DAGs et le projet dbt sans appeler Snowflake.
+# Aucun secret à créer : les tests analysent les DAGs et le projet dbt sans appeler Snowflake.
 name: CI
 
 on:
@@ -8,6 +8,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   tests:
@@ -18,8 +21,16 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v5
 
+      # Le script d'installation interroge l'API GitHub : sans jeton, la limite de requêtes
+      # anonymes des runners partagés est vite atteinte. Le jeton automatique du workflow suffit
+      # (passé explicitement à sudo, qui ne transmet pas les variables d'environnement).
       - name: Installer l'Astro CLI (même version qu'en local)
-        run: curl -sSL install.astronomer.io | sudo bash -s -- v1.47.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: curl -sSL install.astronomer.io | sudo GITHUB_TOKEN="$GITHUB_TOKEN" bash -s -- v1.47.0
+
+      - name: Vérifier la version de l'Astro CLI
+        run: astro version
 
       - name: Créer un .env vide (le vrai, avec la connexion Snowflake, n'est pas versionné)
         run: touch .env
