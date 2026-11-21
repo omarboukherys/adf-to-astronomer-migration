@@ -1,0 +1,27 @@
+name: retail
+version: "1.0.0"
+profile: retail
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  retail:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+
+# Expected results computed by scripts/generate_source_files.py (data/landing/manifest.json).
+# Used by the reconciliation test: the marts must match the source data exactly.
+vars:
+  expected_customers: 1831
+  expected_products: 80
+  expected_valid_orders: 6071
+  expected_rejected_orders: 5
+  expected_delivered_revenue: 838711.64

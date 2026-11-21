@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: Current version of each customer.
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+
+  - name: dim_products
+    description: Current version of each product.
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+
+  - name: fct_orders
+    description: One row per valid order, latest version.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["PLACED", "DELIVERED", "CANCELLED", "RETURNED"]
+      - name: product_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
+      - name: customer_id
+        description: The source sends a few orders for customers that never arrive (orphans).
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+              config:
+                severity: warn
+
+  - name: audit_rejected_orders
+    description: Orders rejected by the quality rules, with the reason.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+
+  - name: mart_daily_sales
+    description: Daily sales by channel.

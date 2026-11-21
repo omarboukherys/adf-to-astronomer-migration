@@ -1,0 +1,16 @@
+# dbt connection, used by Cosmos inside the Astro containers.
+# No secret here: the private key file is mounted in include/keys/ (ignored by git and docker).
+retail:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: GXIOLMG-FX39783
+      user: SVC_AIRFLOW
+      authenticator: SNOWFLAKE_JWT
+      private_key_path: /usr/local/airflow/include/keys/svc_airflow_key.p8
+      role: AIRFLOW_ROLE
+      warehouse: ETL_WH
+      database: RETAIL
+      schema: DBT
+      threads: 4

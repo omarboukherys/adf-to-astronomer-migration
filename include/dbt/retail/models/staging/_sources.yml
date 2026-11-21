@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: raw_airflow
+    description: Raw landing files loaded by the Airflow DAG load_landing_to_snowflake (all columns as text).
+    database: RETAIL
+    schema: RAW_AIRFLOW
+    tables:
+      - name: customers
+      - name: products
+      - name: orders
